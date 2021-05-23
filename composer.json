@@ -1,0 +1,21 @@
+{
+  "name": "vipenm/photoserver-sync",
+  "description": "Sync files between server and AWS",
+  "authors": [
+    {
+      "name": "Vipen Mahay",
+      "email": "vipenmahay@gmail.com"
+    }
+  ],
+  "require": {
+    "aws/aws-sdk-php": "^3.173",
+    "imagine/imagine": "^1.2",
+    "ksubileau/color-thief-php": "^1.4",
+    "phpmailer/phpmailer": "^6.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "PhotoserverSync\\": "src/"
+    }
+  }
+}
