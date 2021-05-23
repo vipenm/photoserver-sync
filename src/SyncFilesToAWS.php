@@ -36,7 +36,7 @@ class SyncFilesToAWS
         'secret' => $this->aws_secret,
       ],
       'http'    => [
-        'verify' => dirname(__DIR__, 1) . '\config\cacert.pem'
+        'verify' => dirname(__DIR__, 1) . '/config/cacert.pem'
       ]
     ]);
   }

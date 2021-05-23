@@ -2,7 +2,7 @@
 
 namespace PhotoserverSync;
 
-use Imagine\Imagick\Imagine;
+use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
 use PhotoserverSync\SyncFilesToAWS;
