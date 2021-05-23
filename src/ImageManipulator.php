@@ -2,8 +2,6 @@
 
 namespace PhotoserverSync;
 
-require_once 'vendor/autoload.php';
-
 use Imagine\Imagick\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
