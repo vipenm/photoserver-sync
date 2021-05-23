@@ -41,7 +41,7 @@ class ImageManipulator
     $this->imagine = new Imagine();
     $this->config = new Config\EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen(realpath(".") ."data/photoserversync.log", "w") or die("Unable to open file");
+    $this->log_file = fopen(realpath(".") ."/data/photoserversync.log", "w") or die("Unable to open file");
     $this->client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
