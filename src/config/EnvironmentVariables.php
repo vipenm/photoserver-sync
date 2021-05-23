@@ -8,7 +8,7 @@ class EnvironmentVariables
 
     public function __construct()
     {
-        $this->config = file_get_contents('config/config.json');
+        $this->config = file_get_contents(realpath(".") . '/apps/facerecognition/config/config.json');
         $this->config = json_decode($this->config);
     }
 

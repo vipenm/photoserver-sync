@@ -9,7 +9,8 @@ use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
 use PhotoserverSync\SyncFilesToAWS;
 use PHPMailer\PHPMailer\PHPMailer;
-use PhotoserverSync\Config\EnvironmentVariables;
+
+require_once "config/EnvironmentVariables.php";
 
 class ImageManipulator
 {
@@ -40,9 +41,9 @@ class ImageManipulator
   public function __construct()
   {
     $this->imagine = new Imagine();
-    $this->config = new EnvironmentVariables();
+    $this->config = new Config\EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen("logs/log.log", "w") or die("Unable to open file");
+    $this->log_file = fopen(realpath(".") ."data/photoserversync.log", "w") or die("Unable to open file");
     $this->client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
