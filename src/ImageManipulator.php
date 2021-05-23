@@ -48,6 +48,7 @@ class ImageManipulator
     $this->mail_password = $this->config->getMailPassword();
     $this->mail_recipient_email = $this->config->getMailRecipientEmail();
     $this->mail_recipient_name = $this->config->getMailRecipientName();
+    $this->images = [];
   }
 
   /**
@@ -240,7 +241,6 @@ class ImageManipulator
   public function findAllImages($dir)
   {
     try {
-      $images = [];
       if (!is_dir($dir)) {
         $this->writeToLog("Error reading from directory. Does it exist?", false, true);
         throw new \Exception("Error reading from directory. Does it exist?");
@@ -253,13 +253,13 @@ class ImageManipulator
         if (!is_dir($path)) {
           $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
           if (in_array($ext, ['jpg', 'png', 'jpeg'])) {
-            array_push($images, $path);
+            array_push($this->images, $path);
           }
         } else if ($value != '.' && $value != "..") {
           $this->findAllImages($path);
         }
       }
-      return $images;
+      return $this->images;
     } catch (\Exception $err) {
       echo $err;
     }
