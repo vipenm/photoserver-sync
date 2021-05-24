@@ -56,4 +56,14 @@ class EnvironmentVariables
     {
         return $this->config->mail_name;
     }
+
+    public function getUsername()
+    {
+        return $this->config->username;
+    }
+
+    public function getPassword()
+    {
+        return $this->config->password;
+    }
 }
