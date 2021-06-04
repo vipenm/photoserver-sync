@@ -1,14 +1,18 @@
 <?php
 
 namespace PhotoserverSync;
+require_once realpath('../vendor/autoload.php');
 
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
 use PhotoserverSync\SyncFilesToAWS;
+use PhotoserverSync\Config\EnvironmentVariables;
 use PHPMailer\PHPMailer\PHPMailer;
-
-require_once "config/EnvironmentVariables.php";
+use GuzzleHttp\Client;
+use GuzzleHttp\Pool;
+use GuzzleHttp\Psr7\Request;
+use Imagine\Image\ImageInterface;
 
 class ImageManipulator
 {
@@ -39,16 +43,98 @@ class ImageManipulator
   public function __construct()
   {
     $this->imagine = new Imagine();
-    $this->config = new Config\EnvironmentVariables();
+    $this->config = new EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen(realpath(".") ."/data/photoserversync.log", "w") or die("Unable to open file");
-    $this->client = new SyncFilesToAWS();
+    $this->log_file = fopen(realpath("../logs/pinas-sync.log"), "w") or die("Unable to open file");
+    $this->s3client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
     $this->mail_password = $this->config->getMailPassword();
     $this->mail_recipient_email = $this->config->getMailRecipientEmail();
     $this->mail_recipient_name = $this->config->getMailRecipientName();
     $this->images = [];
+    $this->persons = [];
+    $this->nextcloud_username = $this->config->getNextcloudUsername();
+    $this->nextcloud_password = $this->config->getNextcloudPassword();
+    $this->client = new Client([
+        'base_uri' => 'https://nextcloud.vipenmahay.com/index.php/apps/facerecognition/',
+        'auth' => [$this->nextcloud_username, $this->nextcloud_password]
+    ]);
+
+    $this->getResults();
+  }
+
+  /**
+   * REST API call to get list of people's names
+   */
+  private function getPersons()
+  {
+      $res = $this->client->get('persons');
+
+      if ($res->getStatusCode() !== 200) {
+          return;
+      }
+
+      $persons = json_decode($res->getBody());
+
+      $persons = $persons->persons;
+
+      return $persons;
+  }
+
+  /**
+   * REST API call to get images associated with a person
+   */
+  private function getResults()
+  {
+      $persons = $this->getPersons();
+      $imageResults = [];
+
+      $requests = function ($persons) {
+          foreach($persons as $person){
+              yield new Request('GET', "person/" . $person->name);
+          }
+      };
+
+      $pool = new Pool($this->client, $requests($persons), [
+          'concurrency' => 5,
+          'fulfilled' => function ($response, $index) use (&$imageResults) {
+              $data = json_decode($response->getBody()->getContents(), true);
+              array_push($imageResults, $data);
+          },
+          'rejected' => function ($reason, $index) {
+              // this is delivered each failed request
+                echo "rejected";
+          },
+      ]);
+      // Initiate the transfers and create a promise
+      $promise = $pool->promise();
+
+      // Force the pool of requests to complete.
+      $promise->wait();
+
+      $formattedArray = [];
+
+      // format array into something easier to manipulate
+      foreach ($imageResults as $person) {
+        $tmp = [];
+        $formattedArray[$person['name']] = [
+          'thumbUrl' => $person['thumbUrl']
+        ];
+        foreach ($person['images'] as $image) {
+          $image['fileUrl'] = rawurldecode(substr($image['fileUrl'], strpos($image['fileUrl'], 'scrollto=') + strlen('scrollto=')));
+          array_push($tmp, $image['fileUrl']);
+        }
+        $formattedArray[$person['name']]['images'] = json_encode($tmp);
+      }
+
+      $this->persons = $formattedArray;
+
+      // find all images from root image directory
+      $listOfImages = $this->findAllImages(realpath("../images/ReadyForOptimisation"));  // TODO change to correct dir
+      if ($listOfImages) {
+          $list = $this->resizeAllImages($listOfImages);
+      }
   }
 
   /**
@@ -74,23 +160,38 @@ class ImageManipulator
 
     try {
       $returnedList = [];
+
       foreach ($images as $key => $path) {
-        $rotate = 0;
 
         // resize image
         $ext = pathinfo($path, PATHINFO_EXTENSION);
         $file = pathinfo($path, PATHINFO_FILENAME);
         $dir = pathinfo($path, PATHINFO_DIRNAME);
 
+        $rotate = 0;
+
+        // specify filepath we want for the resized images
         $thumbnailPath = $dir . '\_thumb_' . $file . '.' . $ext;
         $mediumPath = $dir . '\_medium_' . $file . '.' . $ext;
 
         $metadata = $this->getMetadata($path);
 
+        // append person/s to metadata
+        foreach ($this->persons as $key => $person) {
+          if (strpos($person['images'], $file . '.' . $ext) !== false) {
+            if (empty($metadata['person'])) {
+              $metadata['person'] = $key;
+            } else {
+              $metadata['person'] .= ' ' . $key;
+            }
+          }
+        }
+
         if (empty($metadata['filename'])) {
           $metadata['filename'] = $file . '.' . $ext;
         }
 
+        // need to check for orientation as the resize will incorrectly rotate image
         if (!empty($metadata['orientation'])) {
           switch ($metadata['orientation']) {
               case 3:
@@ -106,15 +207,15 @@ class ImageManipulator
                 $rotate = 0;
                 break;
           }
-      }
+        }
 
         $this->writeToLog("Converting image " . $file . '...');
         $this->imagine->open($path)
-          ->thumbnail(new Box($width, $height))
+          ->thumbnail(new Box($width, $height), ImageInterface::THUMBNAIL_INSET) // don't make a clone (preserve memory)
           ->rotate($rotate)
           ->save($thumbnailPath);
         $this->imagine->open($path)
-          ->thumbnail(new Box(500, 500))
+          ->thumbnail(new Box(500, 500), ImageInterface::THUMBNAIL_INSET)
           ->rotate($rotate)
           ->save($mediumPath);
 
@@ -123,12 +224,11 @@ class ImageManipulator
         echo "done\n";
         fwrite($this->log_file, "done\n");
 
-        $this->client->uploadToS3($path, ($file . '.' . $ext), $metadata);
-        $this->client->uploadToS3($mediumPath, ('_medium_' . $file . '.' . $ext), $metadata);
-        $this->client->uploadToS3($thumbnailPath, ('_thumb_' . $file . '.' . $ext), $metadata);
+        $this->s3client->uploadToS3($path, ($file . '.' . $ext), $metadata);
+        $this->s3client->uploadToS3($mediumPath, ('medium/_medium_' . $file . '.' . $ext), $metadata);
+        $this->s3client->uploadToS3($thumbnailPath, ('thumbnail/_thumb_' . $file . '.' . $ext), $metadata);
 
         $successful++;
-
       }
 
       $time_end = microtime(true);
@@ -151,6 +251,9 @@ class ImageManipulator
     fclose($this->log_file);
   }
 
+  /**
+   * Reads individual files' metadata
+   */
   private function getMetadata($image)
   {
     try {
@@ -219,6 +322,9 @@ class ImageManipulator
     }
   }
 
+  /**
+   * Convert GPS coords to something more translatable
+   */
   private function convertGPS($coordinate, $hemisphere) {
     if (is_string($coordinate)) {
       $coordinate = array_map("trim", explode(",", $coordinate));
@@ -238,7 +344,10 @@ class ImageManipulator
     return $sign * ($degrees + $minutes/60 + $seconds/3600);
   }
 
-  public function findAllImages($dir)
+  /**
+   * Finds all images within a given directory
+   */
+  public function findAllImages($dir) // TODO does it check nested directories?
   {
     try {
       if (!is_dir($dir)) {
@@ -249,6 +358,9 @@ class ImageManipulator
       $files = scandir($dir);
 
       foreach ($files as $key => $value) {
+
+        // If $dir === 'Synced' => continue;
+
         $path = realpath($dir . DIRECTORY_SEPARATOR . $value);
         if (!is_dir($path)) {
           $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
@@ -265,6 +377,9 @@ class ImageManipulator
     }
   }
 
+  /**
+   * Adds messaging to a log file
+   */
   private function writeToLog($message, $prependNewLine = false, $appendNewLine = false)
   {
     if ($prependNewLine) {
@@ -281,6 +396,9 @@ class ImageManipulator
     fwrite($this->log_file, $text);
   }
 
+  /**
+   * Moves files from one directory to another
+   */
   public function moveFiles($oldPath, $newPath)
   {
     $file = pathinfo($oldPath, PATHINFO_FILENAME);
@@ -305,6 +423,9 @@ class ImageManipulator
     }
   }
 
+  /**
+   * Emails a brief summary of the job
+   */
   private function sendEmail($start, $total, $successful, $failed, $end)
   {
     $mail = new PHPMailer;

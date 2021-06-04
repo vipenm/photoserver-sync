@@ -2,4 +2,6 @@
 
 namespace PhotoserverSync;
 
-require_once 'vendor/autoload.php';
+require_once ('ImageManipulator.php');
+
+new ImageManipulator();

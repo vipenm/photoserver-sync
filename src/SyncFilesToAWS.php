@@ -47,8 +47,7 @@ class SyncFilesToAWS
       'Bucket' => $this->aws_bucket_name,
       'SourceFile' => $file,
       'Key' => $filename,
-      'Metadata'   => $metadata
+      'Metadata' => $metadata
     ));
   }
-
 }

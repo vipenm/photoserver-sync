@@ -8,7 +8,7 @@ class EnvironmentVariables
 
     public function __construct()
     {
-        $this->config = file_get_contents(realpath(".") . '/apps/facerecognition/config/config.json');
+        $this->config = file_get_contents(realpath("../config/config.json"));
         $this->config = json_decode($this->config);
     }
 
@@ -49,12 +49,12 @@ class EnvironmentVariables
 
     public function getMailRecipientEmail()
     {
-        return $this->config->mail_recipent;
+        return $this->config->mail_recipent_email;
     }
 
     public function getMailRecipientName()
     {
-        return $this->config->mail_name;
+        return $this->config->mail_recipent_name;
     }
 
     public function getUsername()
@@ -65,5 +65,15 @@ class EnvironmentVariables
     public function getPassword()
     {
         return $this->config->password;
+    }
+
+    public function getNextcloudUsername()
+    {
+        return $this->config->nextcloud_username;
+    }
+
+    public function getNextcloudPassword()
+    {
+        return $this->config->nextcloud_password;
     }
 }
