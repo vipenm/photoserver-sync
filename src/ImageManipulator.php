@@ -1,7 +1,6 @@
 <?php
 
 namespace PhotoserverSync;
-require_once realpath('../vendor/autoload.php');
 
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
@@ -13,6 +12,8 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7\Request;
 use Imagine\Image\ImageInterface;
+
+require_once ("config" . DIRECTORY_SEPARATOR . "EnvironmentVariables.php");
 
 class ImageManipulator
 {
@@ -43,9 +44,9 @@ class ImageManipulator
   public function __construct()
   {
     $this->imagine = new Imagine();
-    $this->config = new EnvironmentVariables();
+    $this->config = new config\EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen(realpath("../logs/pinas-sync.log"), "w") or die("Unable to open file");
+    $this->log_file = fopen(realpath("..". DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log"), "w") or die("Unable to open file");
     $this->s3client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
@@ -60,6 +61,8 @@ class ImageManipulator
         'base_uri' => 'https://nextcloud.vipenmahay.com/index.php/apps/facerecognition/',
         'auth' => [$this->nextcloud_username, $this->nextcloud_password]
     ]);
+
+    echo '<pre>' . var_dump("HERE");die;
 
     $this->getResults();
   }
