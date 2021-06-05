@@ -45,6 +45,8 @@ class ImageManipulator
 
   private $skipped;
 
+  private $files_directory;
+
   public function __construct()
   {
     $this->imagine = new Imagine();
@@ -60,6 +62,7 @@ class ImageManipulator
     $this->mail_recipient_name = $this->config->getMailRecipientName();
     $this->images = [];
     $this->persons = [];
+    $this->files_directory = dirname(realpath("."), 6) . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "Nextcloud" . DIRECTORY_SEPARATOR . "sneek" . DIRECTORY_SEPARATOR . "files";
     $this->nextcloud_username = $this->config->getNextcloudUsername();
     $this->nextcloud_password = $this->config->getNextcloudPassword();
     $this->client = new Client([
@@ -139,7 +142,7 @@ class ImageManipulator
       $this->persons = $formattedArray;
 
       // find all images from root image directory
-      $listOfImages = $this->findAllImages(dirname(realpath("."), 6) . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "Nextcloud" . DIRECTORY_SEPARATOR . "sneek" . DIRECTORY_SEPARATOR . "files");
+      $listOfImages = $this->findAllImages($this->files_directory);
       if ($listOfImages['images']) {
           $list = $this->resizeAllImages($listOfImages);
       }
@@ -236,6 +239,11 @@ class ImageManipulator
         $this->s3client->uploadToS3($thumbnailPath, ('thumbnail/_thumb_' . $file . '.' . $ext), $metadata);
 
         $successful++;
+      }
+
+      $completedImages = $this->findAllImages($this->files_directory);
+      foreach ($completedImages as $image) {
+        $this->moveFiles($image, $this->files_directory . DIRECTORY_SEPARATOR . 'Synced');
       }
 
       $time_end = microtime(true);
