@@ -141,7 +141,7 @@ class ImageManipulator
 
       // find all images from root image directory
       $listOfImages = $this->findAllImages($this->files_directory);
-      if ($listOfImages['images']) {
+      if ($listOfImages) {
           $list = $this->resizeAllImages($listOfImages);
       }
   }
@@ -161,7 +161,7 @@ class ImageManipulator
     $time_start = microtime(true);
 
     $start = date("d F Y H:i:s");
-    $total = count($images['images']);
+    $total = count($images);
     $successful = 0;
     $failed = 0;
     $end = null;
@@ -169,7 +169,7 @@ class ImageManipulator
     try {
       $returnedList = [];
 
-      foreach ($images['images'] as $key => $path) {
+      foreach ($images as $key => $path) {
 
         // resize image
         $ext = pathinfo($path, PATHINFO_EXTENSION);
@@ -387,7 +387,7 @@ class ImageManipulator
           $this->findAllImages($path);
         }
       }
-      return array($this->images, $this->skipped);
+      return $this->images;
     } catch (\Exception $err) {
       echo $err;
     }
