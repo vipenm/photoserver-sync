@@ -43,14 +43,11 @@ class ImageManipulator
 
   private $mail_recipient_name;
 
-  private $skipped;
-
   private $files_directory;
 
   public function __construct()
   {
     $this->imagine = new Imagine();
-    $this->skipped = 0;
     $this->config = new config\EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
     $this->log_file = fopen(dirname(realpath("."), 7) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
@@ -241,7 +238,11 @@ class ImageManipulator
 
       $completedImages = $this->findAllImages($this->files_directory);
       foreach ($completedImages as $image) {
-        $this->moveFiles($image, $this->files_directory . DIRECTORY_SEPARATOR . 'Synced');
+        if (strpos($image, '_thumb_') !== false || strpos($image, '_medium_') !== false) {
+          unlink($image);
+        } else {
+          $this->moveFiles($image, $this->files_directory . DIRECTORY_SEPARATOR . 'Synced');
+        }
       }
 
       $time_end = microtime(true);
@@ -249,7 +250,7 @@ class ImageManipulator
       $end = number_format((float)$end, 2, '.', '');
       echo "Total Execution Time: ".$end." Mins\n";
 
-      $this->sendEmail($start, $total, $successful, $this->skipped, $failed, $end);
+      $this->sendEmail($start, $total, $successful, $failed, $end);
 
       return $returnedList;
 
@@ -374,7 +375,6 @@ class ImageManipulator
         $path = realpath($dir . DIRECTORY_SEPARATOR . $value);
 
         if (strpos($path, 'Synced') !== false) {
-          $this->skipped++;
           continue;
         }
 
@@ -442,7 +442,7 @@ class ImageManipulator
   /**
    * Emails a brief summary of the job
    */
-  private function sendEmail($start, $total, $successful, $skipped, $failed, $end)
+  private function sendEmail($start, $total, $successful, $failed, $end)
   {
     $mail = new PHPMailer;
     $mail->isSMTP();
@@ -469,10 +469,6 @@ class ImageManipulator
           <tr>
             <td>No. of images successfully processed:</td>
             <td>' . $successful . '</td>
-          </tr>
-          <tr>
-            <td>No. of images skipped (already synced):</td>
-            <td>' . $skipped . '</td>
           </tr>
           <tr>
             <td>No. of images failed:</td>
