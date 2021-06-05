@@ -138,8 +138,7 @@ class ImageManipulator
   }
 
   /**
-   * Recursively checks directories and sub-directories
-   * and resizes images to custom size
+   * Resizes given images to custom size
    *
    * @param int $width
    * @param int $height
@@ -345,9 +344,9 @@ class ImageManipulator
   }
 
   /**
-   * Finds all images within a given directory
+   * Finds all images within a given directory recursively
    */
-  public function findAllImages($dir) // TODO does it check nested directories?
+  public function findAllImages($dir)
   {
     try {
       if (!is_dir($dir)) {
