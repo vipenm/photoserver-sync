@@ -179,8 +179,8 @@ class ImageManipulator
         $rotate = 0;
 
         // specify filepath we want for the resized images
-        $thumbnailPath = $dir . '\_thumb_' . $file . '.' . $ext;
-        $mediumPath = $dir . '\_medium_' . $file . '.' . $ext;
+        $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
+        $mediumPath = $dir . DIRECTORY_SEPARATOR . '_medium_' . $file . '.' . $ext;
 
         $metadata = $this->getMetadata($path);
 
