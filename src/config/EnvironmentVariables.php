@@ -8,7 +8,7 @@ class EnvironmentVariables
 
     public function __construct()
     {
-        $this->config = file_get_contents(realpath(".." . DIRECTORY_SEPARATOR . "config" . DIRECTORY_SEPARATOR . "config.json"));
+        $this->config = file_get_contents(dirname(realpath("."), 7) . DIRECTORY_SEPARATOR . "config.json");
         $this->config = json_decode($this->config);
     }
 

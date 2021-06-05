@@ -43,12 +43,15 @@ class ImageManipulator
 
   private $mail_recipient_name;
 
+  private $skipped;
+
   public function __construct()
   {
     $this->imagine = new Imagine();
+    $this->skipped = 0;
     $this->config = new config\EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen(realpath("..". DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log"), "w") or die("Unable to open file");
+    $this->log_file = fopen(dirname(realpath("."), 7) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
     $this->s3client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
@@ -136,8 +139,8 @@ class ImageManipulator
       $this->persons = $formattedArray;
 
       // find all images from root image directory
-      $listOfImages = $this->findAllImages(realpath("../images/ReadyForOptimisation"));  // TODO change to correct dir
-      if ($listOfImages) {
+      $listOfImages = $this->findAllImages(dirname(realpath("."), 6) . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "Nextcloud" . DIRECTORY_SEPARATOR . "sneek" . DIRECTORY_SEPARATOR . "files");
+      if ($listOfImages['images']) {
           $list = $this->resizeAllImages($listOfImages);
       }
   }
@@ -157,7 +160,7 @@ class ImageManipulator
     $time_start = microtime(true);
 
     $start = date("d F Y H:i:s");
-    $total = count($images);
+    $total = count($images['images']);
     $successful = 0;
     $failed = 0;
     $end = null;
@@ -165,7 +168,7 @@ class ImageManipulator
     try {
       $returnedList = [];
 
-      foreach ($images as $key => $path) {
+      foreach ($images['images'] as $key => $path) {
 
         // resize image
         $ext = pathinfo($path, PATHINFO_EXTENSION);
@@ -240,7 +243,7 @@ class ImageManipulator
       $end = number_format((float)$end, 2, '.', '');
       echo "Total Execution Time: ".$end." Mins\n";
 
-      $this->sendEmail($start, $total, $successful, $failed, $end);
+      $this->sendEmail($start, $total, $successful, $this->skipped, $failed, $end);
 
       return $returnedList;
 
@@ -362,10 +365,13 @@ class ImageManipulator
       $files = scandir($dir);
 
       foreach ($files as $key => $value) {
-
-        // If $dir === 'Synced' => continue;
-
         $path = realpath($dir . DIRECTORY_SEPARATOR . $value);
+
+        if (strpos($path, 'Synced') !== false) {
+          $this->skipped++;
+          continue;
+        }
+
         if (!is_dir($path)) {
           $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
           if (in_array($ext, ['jpg', 'png', 'jpeg'])) {
@@ -375,7 +381,7 @@ class ImageManipulator
           $this->findAllImages($path);
         }
       }
-      return $this->images;
+      return array($this->images, $this->skipped);
     } catch (\Exception $err) {
       echo $err;
     }
@@ -430,7 +436,7 @@ class ImageManipulator
   /**
    * Emails a brief summary of the job
    */
-  private function sendEmail($start, $total, $successful, $failed, $end)
+  private function sendEmail($start, $total, $successful, $skipped, $failed, $end)
   {
     $mail = new PHPMailer;
     $mail->isSMTP();
@@ -454,9 +460,13 @@ class ImageManipulator
               <td>Total number of images:</td>
               <td>' . $total . '</td>
           </tr>
-              <tr>
+          <tr>
             <td>No. of images successfully processed:</td>
             <td>' . $successful . '</td>
+          </tr>
+          <tr>
+            <td>No. of images skipped (already synced):</td>
+            <td>' . $skipped . '</td>
           </tr>
           <tr>
             <td>No. of images failed:</td>
