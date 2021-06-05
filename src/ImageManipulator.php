@@ -2,6 +2,8 @@
 
 namespace PhotoserverSync;
 
+require_once '../vendor/autoload.php';
+
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
@@ -55,7 +57,7 @@ class ImageManipulator
     $this->mail_recipient_name = $this->config->getMailRecipientName();
     $this->images = [];
     $this->persons = [];
-    $this->files_directory = '/volume/Nextcloud/sneek/files';
+    $this->files_directory = dirname(realpath("."), 1) . '\images';
     $this->nextcloud_username = $this->config->getNextcloudUsername();
     $this->nextcloud_password = $this->config->getNextcloudPassword();
     $this->client = new Client([
