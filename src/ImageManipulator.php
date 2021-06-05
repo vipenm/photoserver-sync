@@ -15,8 +15,6 @@ use GuzzleHttp\Pool;
 use GuzzleHttp\Psr7\Request;
 use Imagine\Image\ImageInterface;
 
-require_once ("config" . DIRECTORY_SEPARATOR . "EnvironmentVariables.php");
-
 class ImageManipulator
 {
   /**
@@ -48,7 +46,7 @@ class ImageManipulator
   public function __construct()
   {
     $this->imagine = new Imagine();
-    $this->config = new config\EnvironmentVariables();
+    $this->config = new EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
     $this->log_file = fopen(dirname(realpath("."), 1) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
     $this->s3client = new SyncFilesToAWS();
