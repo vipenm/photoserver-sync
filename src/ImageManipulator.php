@@ -2,8 +2,6 @@
 
 namespace PhotoserverSync;
 
-require_once realpath('../../../autoload.php');
-
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
