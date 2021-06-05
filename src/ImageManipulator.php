@@ -99,37 +99,15 @@ class ImageManipulator
       };
 
       $pool = new Pool($this->client, $requests($persons), [
-          'concurrency' => 5,
-          'fulfilled' => function ($response, $index) use (&$imageResults) {
-              $data = json_decode($response->getBody()->getContents(), true);
-              array_push($imageResults, $data);
+        'concurrency' => 5,
+        'fulfilled' => function ($response, $index) use (&$imageResults) {
+            $data = json_decode($response->getBody()->getContents(), true);
+            array_push($imageResults, $data);
 
-              $formattedArray = [];
-
-              // format array into something easier to manipulate
-              foreach ($imageResults as $person) {
-                $tmp = [];
-                $formattedArray[$person['name']] = [
-                  'thumbUrl' => $person['thumbUrl']
-                ];
-                foreach ($person['images'] as $image) {
-                  $image['fileUrl'] = rawurldecode(substr($image['fileUrl'], strpos($image['fileUrl'], 'scrollto=') + strlen('scrollto=')));
-                  array_push($tmp, $image['fileUrl']);
-                }
-                $formattedArray[$person['name']]['images'] = json_encode($tmp);
-              }
-
-              $this->persons = $formattedArray;
-
-              // find all images from root image directory
-              $listOfImages = $this->findAllImages($this->files_directory);
-              if ($listOfImages) {
-                  $list = $this->resizeAllImages($listOfImages);
-              }
           },
           'rejected' => function ($reason, $index) {
-              // this is delivered each failed request
-                echo "rejected";
+            // this is delivered each failed request
+            echo "rejected";
           },
       ]);
       // Initiate the transfers and create a promise
@@ -137,6 +115,29 @@ class ImageManipulator
 
       // Force the pool of requests to complete.
       $promise->wait();
+
+      $formattedArray = [];
+
+      // format array into something easier to manipulate
+      foreach ($imageResults as $person) {
+        $tmp = [];
+        $formattedArray[$person['name']] = [
+          'thumbUrl' => $person['thumbUrl']
+        ];
+        foreach ($person['images'] as $image) {
+          $image['fileUrl'] = rawurldecode(substr($image['fileUrl'], strpos($image['fileUrl'], 'scrollto=') + strlen('scrollto=')));
+          array_push($tmp, $image['fileUrl']);
+        }
+        $formattedArray[$person['name']]['images'] = json_encode($tmp);
+      }
+
+      $this->persons = $formattedArray;
+
+      // find all images from root image directory
+      $listOfImages = $this->findAllImages($this->files_directory);
+      if ($listOfImages) {
+          $list = $this->resizeAllImages($listOfImages);
+      }
   }
 
   /**
