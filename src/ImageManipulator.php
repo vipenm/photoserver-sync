@@ -55,7 +55,7 @@ class ImageManipulator
     $this->mail_recipient_name = $this->config->getMailRecipientName();
     $this->images = [];
     $this->persons = [];
-    $this->files_directory = dirname('/volume/Nextcloud/sneek/files');
+    $this->files_directory = '/volume/Nextcloud/sneek/files';
     $this->nextcloud_username = $this->config->getNextcloudUsername();
     $this->nextcloud_password = $this->config->getNextcloudPassword();
     $this->client = new Client([
@@ -103,6 +103,29 @@ class ImageManipulator
           'fulfilled' => function ($response, $index) use (&$imageResults) {
               $data = json_decode($response->getBody()->getContents(), true);
               array_push($imageResults, $data);
+
+              $formattedArray = [];
+
+              // format array into something easier to manipulate
+              foreach ($imageResults as $person) {
+                $tmp = [];
+                $formattedArray[$person['name']] = [
+                  'thumbUrl' => $person['thumbUrl']
+                ];
+                foreach ($person['images'] as $image) {
+                  $image['fileUrl'] = rawurldecode(substr($image['fileUrl'], strpos($image['fileUrl'], 'scrollto=') + strlen('scrollto=')));
+                  array_push($tmp, $image['fileUrl']);
+                }
+                $formattedArray[$person['name']]['images'] = json_encode($tmp);
+              }
+
+              $this->persons = $formattedArray;
+
+              // find all images from root image directory
+              $listOfImages = $this->findAllImages($this->files_directory);
+              if ($listOfImages) {
+                  $list = $this->resizeAllImages($listOfImages);
+              }
           },
           'rejected' => function ($reason, $index) {
               // this is delivered each failed request
@@ -114,29 +137,6 @@ class ImageManipulator
 
       // Force the pool of requests to complete.
       $promise->wait();
-
-      $formattedArray = [];
-
-      // format array into something easier to manipulate
-      foreach ($imageResults as $person) {
-        $tmp = [];
-        $formattedArray[$person['name']] = [
-          'thumbUrl' => $person['thumbUrl']
-        ];
-        foreach ($person['images'] as $image) {
-          $image['fileUrl'] = rawurldecode(substr($image['fileUrl'], strpos($image['fileUrl'], 'scrollto=') + strlen('scrollto=')));
-          array_push($tmp, $image['fileUrl']);
-        }
-        $formattedArray[$person['name']]['images'] = json_encode($tmp);
-      }
-
-      $this->persons = $formattedArray;
-
-      // find all images from root image directory
-      $listOfImages = $this->findAllImages($this->files_directory);
-      if ($listOfImages) {
-          $list = $this->resizeAllImages($listOfImages);
-      }
   }
 
   /**
