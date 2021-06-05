@@ -70,8 +70,6 @@ class ImageManipulator
         'auth' => [$this->nextcloud_username, $this->nextcloud_password]
     ]);
 
-    echo '<pre>' . var_dump("HERE");die;
-
     $this->getResults();
   }
 
