@@ -50,7 +50,7 @@ class ImageManipulator
     $this->imagine = new Imagine();
     $this->config = new config\EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen(dirname(realpath("."), 7) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
+    $this->log_file = fopen(dirname(realpath("."), 1) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
     $this->s3client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
@@ -59,7 +59,7 @@ class ImageManipulator
     $this->mail_recipient_name = $this->config->getMailRecipientName();
     $this->images = [];
     $this->persons = [];
-    $this->files_directory = dirname(realpath("."), 6) . DIRECTORY_SEPARATOR . "data" . DIRECTORY_SEPARATOR . "Nextcloud" . DIRECTORY_SEPARATOR . "sneek" . DIRECTORY_SEPARATOR . "files";
+    $this->files_directory = dirname('/volume/Nextcloud/sneek/files');
     $this->nextcloud_username = $this->config->getNextcloudUsername();
     $this->nextcloud_password = $this->config->getNextcloudPassword();
     $this->client = new Client([
@@ -365,8 +365,8 @@ class ImageManipulator
   {
     try {
       if (!is_dir($dir)) {
-        $this->writeToLog("Error reading from directory. Does it exist?", false, true);
-        throw new \Exception("Error reading from directory. Does it exist?");
+        $this->writeToLog("Error reading from " . $dir . " directory. Does it exist?", false, true);
+        throw new \Exception("Error reading from " . $dir . " directory. Does it exist?");
       }
       $this->writeToLog("Finding all images", false, true);
       $files = scandir($dir);
