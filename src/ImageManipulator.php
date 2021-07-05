@@ -281,8 +281,6 @@ class ImageManipulator
       foreach ($completedImages as $image) {
         if (strpos($image, '_thumb_') !== false || strpos($image, '_medium_') !== false) {
           unlink($image);
-        } else {
-          $this->moveFiles($image, $this->files_directory . DIRECTORY_SEPARATOR . 'Synced');
         }
       }
 
