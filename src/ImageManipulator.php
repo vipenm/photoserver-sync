@@ -2,6 +2,7 @@
 
 namespace PhotoserverSync;
 
+use Aws\S3\S3Client;
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
@@ -41,6 +42,16 @@ class ImageManipulator
 
   private $files_directory;
 
+  private $aws_client;
+
+  private $aws_key;
+
+  private $aws_secret;
+
+  private $aws_bucket_name;
+
+  private $aws_region;
+
   public function __construct()
   {
     $this->imagine = new Imagine();
@@ -63,7 +74,30 @@ class ImageManipulator
         'auth' => [$this->nextcloud_username, $this->nextcloud_password]
     ]);
 
+    $this->aws_key = $this->config->getAWSKey();
+    $this->aws_secret = $this->config->getAWSSecret();
+    $this->aws_bucket_name = $this->config->getAWSBucketName();
+    $this->aws_region = $this->config->getAWSRegion();
+
+    $this->aws_client = new S3Client([
+        'version' => 'latest',
+        'region' => $this->aws_region,
+        'credentials' => [
+            'key'    => $this->aws_key,
+            'secret' => $this->aws_secret,
+        ]
+    ]);
+
     $this->getResults();
+  }
+
+  private function getAWSBucketList()
+  {
+    $iterator = $this->aws_client->getIterator('ListObjects', array(
+      'Bucket' => $this->aws_bucket_name,
+    ));
+
+    return $iterator;
   }
 
   /**
@@ -171,6 +205,16 @@ class ImageManipulator
         $dir = pathinfo($path, PATHINFO_DIRNAME);
 
         $rotate = 0;
+
+        $images = $this->getAWSBucketList();
+
+        foreach ($images as $object) {
+          $key = $object['Key'];
+
+          if ($key === $file . "." . $ext) { // break if file already exists in bucket
+              break;
+          }
+      }
 
         // specify filepath we want for the resized images
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
