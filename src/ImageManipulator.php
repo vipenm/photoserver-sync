@@ -198,6 +198,7 @@ class ImageManipulator
       $returnedList = [];
 
       foreach ($images as $key => $path) {
+        $continue = false;
 
         // resize image
         $ext = pathinfo($path, PATHINFO_EXTENSION);
@@ -212,8 +213,13 @@ class ImageManipulator
           $key = $object['Key'];
 
           if ($key === $file . "." . $ext) { // break if file already exists in bucket
-              break;
+            $continue = true;
+            break;
           }
+      }
+
+      if ($continue) {
+        continue;
       }
 
         // specify filepath we want for the resized images
