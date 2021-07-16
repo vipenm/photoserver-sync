@@ -189,7 +189,7 @@ class ImageManipulator
     $time_start = microtime(true);
 
     $start = date("d F Y H:i:s");
-    $total = count($images);
+    $total = 0;
     $successful = 0;
     $failed = 0;
     $end = null;
@@ -221,6 +221,8 @@ class ImageManipulator
       if ($continue) {
         continue;
       }
+
+      $total++;
 
         // specify filepath we want for the resized images
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
