@@ -16,7 +16,7 @@ class DBConnection
 
     private $mysql_password;
 
-    protected $pdo;
+    private $pdo;
 
     public function __construct()
     {
@@ -34,7 +34,7 @@ class DBConnection
         }
     }
 
-    public function createTable(string $table, object $params = null)
+    public function createTable(string $table, array $params = null)
     {
         $sql = 'CREATE TABLE IF NOT EXISTS ' . $table . ' (' .
         'id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY,';
@@ -52,6 +52,47 @@ class DBConnection
         } catch (\PDOException $e) {
             echo $e->getMessage();
             $this->pdo = null;
+        }
+    }
+
+    public function insertValues(string $table, array $values)
+    {
+        if (empty($values)) {
+            echo 'No values specified';
+            return;
+        }
+
+        $count = count($values);
+        $increment = 1;
+
+        $sql = 'INSERT INTO ' . $table . ' (';
+
+        foreach ($values as $key => $value) {
+            if ($increment == $count) {
+                $sql .= $key;
+            } else {
+                $sql .= $key . ', ';
+            }
+            $increment++;
+        }
+
+        $increment = 1;
+
+        $sql .= ') VALUES (';
+
+        foreach ($values as $key => $value) {
+            if ($increment == $count) {
+                $sql .= $value . ')';
+            } else {
+                $sql .= $value . ', ';
+            }
+            $increment++;
+        }
+
+        try {
+            $this->pdo->exec($sql);
+        } catch (\PDOException $e) {
+            echo $e->getMessage();
         }
     }
 }

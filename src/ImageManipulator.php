@@ -94,12 +94,12 @@ class ImageManipulator
     $this->db = new DBConnection();
 
     $this->createTable();
-    // $this->getResults();
+    $this->getResults();
   }
 
   private function createTable()
   {
-    $params = (object) [
+    $params = [
       'filename' => 'TEXT NOT NULL',
       'person' => 'VARCHAR(255)',
       'latitude' => 'TEXT',
