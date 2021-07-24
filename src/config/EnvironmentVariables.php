@@ -76,4 +76,24 @@ class EnvironmentVariables
     {
         return $this->config->nextcloud_password;
     }
+
+    public function getMysqlHost()
+    {
+        return $this->config->mysql_host;
+    }
+
+    public function getMysqlDatabase()
+    {
+        return $this->config->mysql_database;
+    }
+
+    public function getMysqlUsername()
+    {
+        return $this->config->mysql_username;
+    }
+
+    public function getMysqlPassword()
+    {
+        return $this->config->mysql_password;
+    }
 }

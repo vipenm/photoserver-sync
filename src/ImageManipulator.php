@@ -3,6 +3,7 @@
 namespace PhotoserverSync;
 
 use Aws\S3\S3Client;
+use PhotoserverSync\DBConnection;
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
@@ -52,6 +53,8 @@ class ImageManipulator
 
   private $aws_region;
 
+  private $db;
+
   public function __construct()
   {
     $this->imagine = new Imagine();
@@ -88,7 +91,31 @@ class ImageManipulator
         ]
     ]);
 
-    $this->getResults();
+    $this->db = new DBConnection();
+
+    $this->createTable();
+    // $this->getResults();
+  }
+
+  private function createTable()
+  {
+    $params = (object) [
+      'filename' => 'TEXT NOT NULL',
+      'person' => 'VARCHAR(255)',
+      'latitude' => 'TEXT',
+      'longitude' => 'TEXT',
+      'image_date' => 'DATETIME NOT NULL',
+      'device' => 'VARCHAR(50)',
+      'aperture' => 'VARCHAR(6)',
+      'iso' => 'INT',
+      'exposure' => 'INT',
+      'focal_length' => 'VARCHAR(6)',
+      'filesize' => 'INT',
+      'dimensions' => 'VARCHAR(20)',
+      'orientation' => 'INT'
+    ];
+
+    $this->db->createTable('image_data', $params);
   }
 
   private function getAWSBucketList()
