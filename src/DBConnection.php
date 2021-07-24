@@ -95,4 +95,51 @@ class DBConnection
             echo $e->getMessage();
         }
     }
+
+    public function updateValues(string $table, array $insert, array $where)
+    {
+        if (empty($insert) || empty($where)) {
+            echo 'Missing parameters';
+            return;
+        }
+
+        $count = count($insert);
+        $increment = 1;
+
+        $sql = 'UPDATE ' . $table . ' SET ';
+
+        foreach ($insert as $key => $value) {
+            if ($increment == $count) {
+                $sql .= $key . '=' . $value;
+            } else {
+                $sql .= $key . '=' . $value . ', ';
+            }
+
+            $increment++;
+        }
+
+        $count = count($where);
+        $increment = 1;
+
+        $sql .= ' WHERE ' . key($where) . '=' . $where[key($where)];
+
+        if ($count > 1) {
+            foreach (array_slice($where, 1) as $key => $value) {
+                if ($increment == $count) {
+                    $sql .= ' WHERE ' . $key . '=' . $value;
+                } else {
+                    $sql .= ' AND ' . $key . '=' . $value;
+                }
+
+                $increment++;
+            }
+        }
+
+
+        try {
+            $this->pdo->exec($sql);
+        } catch (\PDOException $e) {
+            echo $e->getMessage();
+        }
+    }
 }

@@ -101,18 +101,20 @@ class ImageManipulator
   {
     $params = [
       'filename' => 'TEXT NOT NULL',
-      'person' => 'VARCHAR(255)',
+      'date' => 'TEXT',
+      'time' => 'TEXT',
+      'datetime' => 'TEXT NOT NULL',
       'latitude' => 'TEXT',
       'longitude' => 'TEXT',
-      'image_date' => 'DATETIME NOT NULL',
       'device' => 'VARCHAR(50)',
       'aperture' => 'VARCHAR(6)',
-      'iso' => 'INT',
-      'exposure' => 'INT',
+      'exposure' => 'VARCHAR(6)',
+      'iso' => 'VARCHAR(6)',
       'focal_length' => 'VARCHAR(6)',
-      'filesize' => 'INT',
+      'filesize' => 'VARCHAR(50)',
       'dimensions' => 'VARCHAR(20)',
-      'orientation' => 'INT'
+      'orientation' => 'VARCHAR(2)',
+      'person' => 'VARCHAR(255)'
     ];
 
     $this->db->createTable('image_data', $params);
@@ -268,6 +270,10 @@ class ImageManipulator
           }
         }
 
+        if ($metadata['person']) {
+          $this->db->updateValues('table_data', ['person' => $metadata['person']], ['datetime' => $metadata['datetime'], 'filesize' => $metadata['filesize']]);
+        }
+
         if (empty($metadata['filename'])) {
           $metadata['filename'] = $file . '.' . $ext;
         }
@@ -387,6 +393,9 @@ class ImageManipulator
         'dimensions' => $width .  'x' . $height,
         'orientation' => array_key_exists('ifd0.Orientation', $metadata) ? $metadata['ifd0.Orientation'] : ''
       ];
+
+      $this->db->insertValues('table_data', $metadata);
+
       echo "done\n";
       fwrite($this->log_file, "done\n");
 
