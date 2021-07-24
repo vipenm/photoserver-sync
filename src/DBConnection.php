@@ -16,7 +16,7 @@ class DBConnection
 
     private $mysql_password;
 
-    private $pdo = null;
+    protected $pdo;
 
     public function __construct()
     {
