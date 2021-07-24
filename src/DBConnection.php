@@ -48,10 +48,8 @@ class DBConnection
 
         try {
             $this->pdo->exec($sql);
-            $this->pdo = null;
         } catch (\PDOException $e) {
             echo $e->getMessage();
-            $this->pdo = null;
         }
     }
 
@@ -141,5 +139,10 @@ class DBConnection
         } catch (\PDOException $e) {
             echo $e->getMessage();
         }
+    }
+
+    public function __destruct()
+    {
+        $this->pdo = null;
     }
 }
