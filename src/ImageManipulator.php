@@ -330,7 +330,7 @@ class ImageManipulator
       $end = number_format((float)$end, 2, '.', '');
       echo "Total Execution Time: ".$end." Mins\n";
 
-      $this->sendEmail($start, $total, $successful, $failed, $end);
+      // $this->sendEmail($start, $total, $successful, $failed, $end);
 
       return $returnedList;
 
