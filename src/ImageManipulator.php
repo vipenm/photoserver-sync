@@ -222,7 +222,7 @@ class ImageManipulator
     $successful = 0;
     $failed = 0;
     $end = null;
-    $bucket_images = $this->getAWSBucketList();
+    $bucket_images = iterator_to_array($this->getAWSBucketList());
 
     try {
       $returnedList = [];
