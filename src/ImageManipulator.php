@@ -1,6 +1,7 @@
 <?php
 
 namespace PhotoserverSync;
+require_once dirname(__FILE__, 2) . '/vendor/autoload.php';
 
 use Aws\S3\S3Client;
 use PhotoserverSync\DBConnection;
@@ -60,7 +61,7 @@ class ImageManipulator
     $this->imagine = new Imagine();
     $this->config = new EnvironmentVariables();
     $this->imagine->setMetadataReader(new ExifMetadataReader());
-    $this->log_file = fopen(dirname(realpath("."), 1) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
+    $this->log_file = fopen(dirname(__FILE__, 2) . DIRECTORY_SEPARATOR ."logs". DIRECTORY_SEPARATOR ."photoserver-sync.log", "w") or die("Unable to open file");
     $this->s3client = new SyncFilesToAWS();
     $this->mail_host = $this->config->getMailHost();
     $this->mail_username = $this->config->getMailUsername();
@@ -91,33 +92,19 @@ class ImageManipulator
         ]
     ]);
 
-    $this->db = new DBConnection();
-
-    $this->createTable();
-    $this->getResults();
+    $listOfImages = $this->findAllImages($this->files_directory);
+    if ($listOfImages) {
+        $list = $this->resizeAllImages($listOfImages);
+    }
   }
+  
 
-  private function createTable()
+  private function getPersonNames($image)
   {
-    $params = [
-      'filename' => 'TEXT NOT NULL',
-      'date' => 'TEXT',
-      'time' => 'TEXT',
-      'datetime' => 'TEXT NOT NULL',
-      'latitude' => 'TEXT',
-      'longitude' => 'TEXT',
-      'device' => 'VARCHAR(50)',
-      'aperture' => 'VARCHAR(6)',
-      'exposure' => 'VARCHAR(6)',
-      'iso' => 'VARCHAR(6)',
-      'focal_length' => 'VARCHAR(6)',
-      'filesize' => 'VARCHAR(50)',
-      'dimensions' => 'VARCHAR(20)',
-      'orientation' => 'VARCHAR(2)',
-      'person' => 'VARCHAR(255)'
-    ];
-
-    $this->db->createTable('image_data', $params);
+	  $output = shell_exec("face_recognition --tolerance 0.5 --cpus 4 " . $this->known_image_path  . " " . $image . " | cut -d ',' -f2");
+	  $output = str_replace('unknown_person', '', $output); // remove unknown people
+	  $output = trim(preg_replace('/\s+/', ' ', $output)); // replace newline with a space
+	  return $output;
   }
 
   private function getAWSBucketList()
@@ -127,80 +114,6 @@ class ImageManipulator
     ));
 
     return $iterator;
-  }
-
-  /**
-   * REST API call to get list of people's names
-   */
-  private function getPersons()
-  {
-      $res = $this->client->get('persons');
-
-      if ($res->getStatusCode() !== 200) {
-          return;
-      }
-
-      $persons = json_decode($res->getBody());
-
-      $persons = $persons->persons;
-
-      return $persons;
-  }
-
-  /**
-   * REST API call to get images associated with a person
-   */
-  private function getResults()
-  {
-      $persons = $this->getPersons();
-      $imageResults = [];
-
-      $requests = function ($persons) {
-          foreach($persons as $person){
-              yield new Request('GET', "person/" . $person->name);
-          }
-      };
-
-      $pool = new Pool($this->client, $requests($persons), [
-        'concurrency' => 5,
-        'fulfilled' => function ($response, $index) use (&$imageResults) {
-            $data = json_decode($response->getBody()->getContents(), true);
-            array_push($imageResults, $data);
-
-          },
-          'rejected' => function ($reason, $index) {
-            // this is delivered each failed request
-            echo "rejected";
-          },
-      ]);
-      // Initiate the transfers and create a promise
-      $promise = $pool->promise();
-
-      // Force the pool of requests to complete.
-      $promise->wait();
-
-      $formattedArray = [];
-
-      // format array into something easier to manipulate
-      foreach ($imageResults as $person) {
-        $tmp = [];
-        $formattedArray[$person['name']] = [
-          'thumbUrl' => $person['thumbUrl']
-        ];
-        foreach ($person['images'] as $image) {
-          $image['fileUrl'] = rawurldecode(substr($image['fileUrl'], strpos($image['fileUrl'], 'scrollto=') + strlen('scrollto=')));
-          array_push($tmp, $image['fileUrl']);
-        }
-        $formattedArray[$person['name']]['images'] = json_encode($tmp);
-      }
-
-      $this->persons = $formattedArray;
-
-      // find all images from root image directory
-      $listOfImages = $this->findAllImages($this->files_directory);
-      if ($listOfImages) {
-          $list = $this->resizeAllImages($listOfImages);
-      }
   }
 
   /**
@@ -247,7 +160,7 @@ class ImageManipulator
       }
 
       if ($continue) {
-        continue;
+        //continue;
       }
 
       $total++;
@@ -256,8 +169,10 @@ class ImageManipulator
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
         $mediumPath = $dir . DIRECTORY_SEPARATOR . '_medium_' . $file . '.' . $ext;
 
-        $metadata = $this->getMetadata($path);
+	$metadata = $this->getMetadata($path);
 
+
+/*
         // append person/s to metadata
         foreach ($this->persons as $key => $person) {
           if (strpos($person['images'], $file . '.' . $ext) !== false) {
@@ -268,6 +183,7 @@ class ImageManipulator
             }
           }
         }
+ */
 
         if ($metadata['person']) {
           $this->db->updateValues('table_data', ['person' => $metadata['person']], ['datetime' => $metadata['datetime'], 'filesize' => $metadata['filesize']]);
