@@ -222,6 +222,7 @@ class ImageManipulator
     $successful = 0;
     $failed = 0;
     $end = null;
+    $bucket_images = $this->getAWSBucketList();
 
     try {
       $returnedList = [];
@@ -236,9 +237,7 @@ class ImageManipulator
 
         $rotate = 0;
 
-        $images = $this->getAWSBucketList();
-
-        foreach ($images as $object) {
+        foreach ($bucket_images as $object) {
           $key = $object['Key'];
 
           if ($key === $file . "." . $ext) { // break if file already exists in bucket
