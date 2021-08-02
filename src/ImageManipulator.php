@@ -4,7 +4,6 @@ namespace PhotoserverSync;
 require_once dirname(__FILE__, 2) . '/vendor/autoload.php';
 
 use Aws\S3\S3Client;
-use PhotoserverSync\DBConnection;
 use Imagine\Gd\Imagine;
 use Imagine\Image\Box;
 use Imagine\Image\Metadata\ExifMetadataReader;
@@ -12,8 +11,6 @@ use PhotoserverSync\SyncFilesToAWS;
 use PhotoserverSync\Config\EnvironmentVariables;
 use PHPMailer\PHPMailer\PHPMailer;
 use GuzzleHttp\Client;
-use GuzzleHttp\Pool;
-use GuzzleHttp\Psr7\Request;
 use Imagine\Image\ImageInterface;
 
 class ImageManipulator
@@ -27,8 +24,6 @@ class ImageManipulator
    * @var string
    */
   private $log_file;
-
-  private $client;
 
   private $config;
 
@@ -54,7 +49,7 @@ class ImageManipulator
 
   private $aws_region;
 
-  private $db;
+  private $known_images_path;
 
   public function __construct()
   {
@@ -73,6 +68,7 @@ class ImageManipulator
     $this->files_directory = '/volume/Nextcloud/sneek/files';
     $this->nextcloud_username = $this->config->getNextcloudUsername();
     $this->nextcloud_password = $this->config->getNextcloudPassword();
+    $this->known_images_path = $this->config->getKnownImagesPath();
     $this->client = new Client([
         'base_uri' => 'https://nextcloud.vipenmahay.com/index.php/apps/facerecognition/',
         'auth' => [$this->nextcloud_username, $this->nextcloud_password]
@@ -97,14 +93,14 @@ class ImageManipulator
         $list = $this->resizeAllImages($listOfImages);
     }
   }
-  
+
 
   private function getPersonNames($image)
   {
-	  $output = shell_exec("face_recognition --tolerance 0.5 --cpus 4 " . $this->known_image_path  . " " . $image . " | cut -d ',' -f2");
-	  $output = str_replace('unknown_person', '', $output); // remove unknown people
-	  $output = trim(preg_replace('/\s+/', ' ', $output)); // replace newline with a space
-	  return $output;
+    $output = shell_exec("face_recognition --tolerance 0.5 --cpus 4 " . $this->known_images_path  . " " . $image . " | cut -d ',' -f2");
+    $output = str_replace('unknown_person', '', $output); // remove unknown people
+    $output = trim(preg_replace('/\s+/', ' ', $output)); // replace newline with a space
+    return $output;
   }
 
   private function getAWSBucketList()
@@ -159,35 +155,17 @@ class ImageManipulator
           }
       }
 
-      if ($continue) {
-        //continue;
-      }
+        if ($continue) {
+            continue;
+        }
 
-      $total++;
+        $total++;
 
         // specify filepath we want for the resized images
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
         $mediumPath = $dir . DIRECTORY_SEPARATOR . '_medium_' . $file . '.' . $ext;
 
-	$metadata = $this->getMetadata($path);
-
-
-/*
-        // append person/s to metadata
-        foreach ($this->persons as $key => $person) {
-          if (strpos($person['images'], $file . '.' . $ext) !== false) {
-            if (empty($metadata['person'])) {
-              $metadata['person'] = $key;
-            } else {
-              $metadata['person'] .= ' ' . $key;
-            }
-          }
-        }
- */
-
-        if ($metadata['person']) {
-          $this->db->updateValues('table_data', ['person' => $metadata['person']], ['datetime' => $metadata['datetime'], 'filesize' => $metadata['filesize']]);
-        }
+        $metadata = $this->getMetadata($path);
 
         if (empty($metadata['filename'])) {
           $metadata['filename'] = $file . '.' . $ext;
@@ -291,6 +269,8 @@ class ImageManipulator
 
       $datetime = strtotime($date.$time);
 
+      $persons = $this->getPersonNames($image);
+
       $metadata =  [
         'date' => $date,
         'time' => $time,
@@ -306,10 +286,9 @@ class ImageManipulator
         'filename' => array_key_exists('file.FileName', $metadata) ? $metadata['file.FileName'] : '',
         // 'dimensions' => array_key_exists('computed.Width', $metadata) ? $metadata['computed.Width'] . 'x' . $metadata['computed.Height'] : '',
         'dimensions' => $width .  'x' . $height,
-        'orientation' => array_key_exists('ifd0.Orientation', $metadata) ? $metadata['ifd0.Orientation'] : ''
+        'orientation' => array_key_exists('ifd0.Orientation', $metadata) ? $metadata['ifd0.Orientation'] : '',
+        'persons' => $persons ? $persons : ''
       ];
-
-      $this->db->insertValues('table_data', $metadata);
 
       echo "done\n";
       fwrite($this->log_file, "done\n");

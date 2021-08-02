@@ -96,4 +96,9 @@ class EnvironmentVariables
     {
         return $this->config->mysql_password;
     }
+
+    public function getKnownImagesPath()
+    {
+        return $this->config->known_images_path;
+    }
 }
