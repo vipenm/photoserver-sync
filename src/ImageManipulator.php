@@ -97,8 +97,10 @@ class ImageManipulator
 
   private function getPersonNames($image)
   {
+    $image = str_replace(" ", "\\ ", $image);
     $output = shell_exec("face_recognition --tolerance 0.5 --cpus 4 " . $this->known_images_path  . " " . $image . " | cut -d ',' -f2");
     $output = str_replace('unknown_person', '', $output); // remove unknown people
+    $output = str_replace('no_persons_found', '', $output); // remove if nobody found
     $output = trim(preg_replace('/\s+/', ' ', $output)); // replace newline with a space
     return $output;
   }
@@ -164,8 +166,7 @@ class ImageManipulator
         // specify filepath we want for the resized images
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
         $mediumPath = $dir . DIRECTORY_SEPARATOR . '_medium_' . $file . '.' . $ext;
-
-        $metadata = $this->getMetadata($path);
+	$metadata = $this->getMetadata($path);
 
         if (empty($metadata['filename'])) {
           $metadata['filename'] = $file . '.' . $ext;
@@ -189,7 +190,12 @@ class ImageManipulator
           }
         }
 
-        $this->writeToLog("Converting image " . $file . '...');
+	$this->writeToLog("Converting image " . $file . '...');
+	$this->imagine->open($path)
+	  ->rotate($rotate)
+          ->save($path);
+	$person = $this->getPersonNames($path);
+	$metadata['person'] = $person;
         $this->imagine->open($path)
           ->thumbnail(new Box($width, $height), ImageInterface::THUMBNAIL_INSET) // don't make a clone (preserve memory)
           ->rotate($rotate)
@@ -269,8 +275,6 @@ class ImageManipulator
 
       $datetime = strtotime($date.$time);
 
-      $persons = $this->getPersonNames($image);
-
       $metadata =  [
         'date' => $date,
         'time' => $time,
@@ -287,7 +291,6 @@ class ImageManipulator
         // 'dimensions' => array_key_exists('computed.Width', $metadata) ? $metadata['computed.Width'] . 'x' . $metadata['computed.Height'] : '',
         'dimensions' => $width .  'x' . $height,
         'orientation' => array_key_exists('ifd0.Orientation', $metadata) ? $metadata['ifd0.Orientation'] : '',
-        'persons' => $persons ? $persons : ''
       ];
 
       echo "done\n";
