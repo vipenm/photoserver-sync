@@ -139,7 +139,7 @@ class ImageManipulator
       $returnedList = [];
 
       foreach ($images as $key => $path) {
-        if (strpos($path, '_thumb_') !== false || strpos($path, '_medium_') !== false) {
+        if (strpos($path, '_thumb_') !== false || strpos($path, '_medium_') !== false || strpos($path, '_tmp_' !== false)) {
             continue;
         }
 
