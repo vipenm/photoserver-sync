@@ -139,6 +139,10 @@ class ImageManipulator
       $returnedList = [];
 
       foreach ($images as $key => $path) {
+        if (str_contains($path, '_thumb_') || str_contains($path, '_medium_')) {
+            continue;
+        }
+
         $continue = false;
 
         // resize image
