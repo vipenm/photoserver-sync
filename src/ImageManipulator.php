@@ -172,7 +172,7 @@ class ImageManipulator
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
         $mediumPath = $dir . DIRECTORY_SEPARATOR . '_medium_' . $file . '.' . $ext;
 
-	    $metadata = $this->getMetadata($path);
+	$metadata = $this->getMetadata($path);
 
         if (empty($metadata['filename'])) {
           $metadata['filename'] = $file . '.' . $ext;
@@ -198,9 +198,11 @@ class ImageManipulator
 
 	$this->writeToLog("Converting image " . $file . '...');
 	$this->imagine->open($path)
-        ->rotate($rotate)
-        ->save($tmpRotationPath);
-	$person = $this->getPersonNames($tmpRotationPath);
+          ->rotate($rotate)
+	  ->save($tmpRotationPath);
+
+        $person = $this->getPersonNames($tmpRotationPath);
+
 	$metadata['person'] = $person;
         $this->imagine->open($path)
           ->thumbnail(new Box($width, $height), ImageInterface::THUMBNAIL_INSET) // don't make a clone (preserve memory)
@@ -215,7 +217,6 @@ class ImageManipulator
 
         echo "done\n";
         fwrite($this->log_file, "done\n");
-
         $this->s3client->uploadToS3($path, ($file . '.' . $ext), $metadata);
         $this->s3client->uploadToS3($mediumPath, ('medium/_medium_' . $file . '.' . $ext), $metadata);
         $this->s3client->uploadToS3($thumbnailPath, ('thumbnail/_thumb_' . $file . '.' . $ext), $metadata);
