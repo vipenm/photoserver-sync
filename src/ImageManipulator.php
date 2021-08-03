@@ -139,7 +139,7 @@ class ImageManipulator
       $returnedList = [];
 
       foreach ($images as $key => $path) {
-        if (str_contains($path, '_thumb_') || str_contains($path, '_medium_')) {
+        if (strpos($path, '_thumb_') !== false || strpos($path, '_medium_') !== false) {
             continue;
         }
 
@@ -218,15 +218,18 @@ class ImageManipulator
         $this->s3client->uploadToS3($mediumPath, ('medium/_medium_' . $file . '.' . $ext), $metadata);
         $this->s3client->uploadToS3($thumbnailPath, ('thumbnail/_thumb_' . $file . '.' . $ext), $metadata);
 
+        unlink($thumbnailPath);
+        unlink($mediumPath);
+
         $successful++;
       }
 
-      $completedImages = $this->findAllImages($this->files_directory);
-      foreach ($completedImages as $image) {
-        if (strpos($image, '_thumb_') !== false || strpos($image, '_medium_') !== false) {
-          unlink($image);
-        }
-      }
+    //   $completedImages = $this->findAllImages($this->files_directory);
+    //   foreach ($completedImages as $image) {
+    //     if (strpos($image, '_thumb_') !== false || strpos($image, '_medium_') !== false) {
+    //       unlink($image);
+    //     }
+    //   }
 
       $time_end = microtime(true);
       $end = ($time_end - $time_start)/60;
