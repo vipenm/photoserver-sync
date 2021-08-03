@@ -168,9 +168,11 @@ class ImageManipulator
         $total++;
 
         // specify filepath we want for the resized images
+        $tmpRotationPath = $dir . DIRECTORY_SEPARATOR . '_temp_' . $file . '.' . $ext;
         $thumbnailPath = $dir . DIRECTORY_SEPARATOR . '_thumb_' . $file . '.' . $ext;
         $mediumPath = $dir . DIRECTORY_SEPARATOR . '_medium_' . $file . '.' . $ext;
-	$metadata = $this->getMetadata($path);
+
+	    $metadata = $this->getMetadata($path);
 
         if (empty($metadata['filename'])) {
           $metadata['filename'] = $file . '.' . $ext;
@@ -195,7 +197,6 @@ class ImageManipulator
         }
 
 	$this->writeToLog("Converting image " . $file . '...');
-    $tmpRotationPath = '';
 	$this->imagine->open($path)
         ->rotate($rotate)
         ->save($tmpRotationPath);
